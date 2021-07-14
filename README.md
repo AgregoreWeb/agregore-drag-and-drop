@@ -5,4 +5,4 @@ An example app to upload files to p2p protocols in Agregore
 - Drag some files in
 - Use the uploaded URLs!
 
-Live Demo: https://ranger.mauve.moe/agregore-drag-and-drop/
+Live Demo: https://agregoreweb.github.io/agregore-drag-and-drop/

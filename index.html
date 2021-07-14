@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<title>Agregore Drag and Drop</title>
+<style>
+  html {
+		background: #F2F2F2;
+  }
+	#uploadBox {
+		padding: 1em;
+		border: 0.25em solid #6e2de5;
+		border-radius: 0.5em;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+
+	main {
+		margin: 1em;
+	}
+
+	select {
+		background: none;
+		font-size: inherit;
+	}
+
+	select {
+		margin-bottom: 0.5em;
+	}
+</style>
+<main>
+	<label for="protocolSelect">
+	  Protocol:
+		<select id="protocolSelect">
+			<option value="ipfs" selected>Inter-Planetary File System (IPFS://)</option>
+			<option value="hyper">Hypercore-Protocol (HYPER://)</option>
+		</select>
+	</label>
+	<section id="uploadBox">
+		<h1>Drop a file to upload it</h2>
+	</section>
+	<ul id="uploadListBox"></ul>
+</main>
+<script>
+	function $(query) {
+		return document.querySelector(query)
+	}
+
+	const uploadBox = $('#uploadBox')
+	uploadBox.ondragover = () => false
+	uploadBox.ondrop = async (e) => {
+		e.preventDefault()
+		const { dataTransfer } = e
+		if(!dataTransfer) return
+
+		for(const file of dataTransfer.files) {
+			await uploadFile(file)
+		}
+	}
+
+	const uploadListBox = $('#uploadListBox')
+
+	const protocolSelect = $('#protocolSelect')
+
+	async function uploadFile(file) {
+		const name = file.name
+		const body = await file.arrayBuffer()
+
+		const protocol = protocolSelect.value
+
+		console.log('Uploading', {name, body, protocol})
+
+		if(protocol === 'hyper'){
+			const response = await fetch(`hyper://drag_and_drop/${name}`, {
+				method: 'PUT',
+				body
+			})
+
+			if(!response.ok) return addError(name, await response.text())
+
+			await response.text()
+
+			const url = await getPublicURL(name)
+
+			addURL(url)
+		} else {
+			const response = await fetch(`ipfs:///${name}`, {
+				method: 'POST',
+				body
+			})
+
+			if(!response.ok) return addError(name, await response.text())
+
+			const url = await response.text()
+
+			addURL(url)
+		}
+	}
+
+	async function getPublicURL(name) {
+		const request = await fetch('hyper://drag_and_drop/.well-known/dat')
+		if(!request.ok) throw addError(name, await response.text())
+		const record = await request.text()
+		const base = record.split('\n')[0]
+		const full = new URL(name, base)
+		full.protocol = 'hyper:'
+		return full.href
+	}
+
+	function addURL(url) {
+		uploadListBox.innerHTML += `<li><a href="${url}">${url}</a></li>`
+	}
+
+	function addError(name, text) {
+		uploadListBox.innerHTML += `<li class="log">Error in ${name}: ${text}</li>`
+	}
+</script>
